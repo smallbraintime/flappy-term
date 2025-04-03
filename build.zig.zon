@@ -1,0 +1,14 @@
+.{
+    .name = "flappy-term",
+
+    .version = "0.0.0",
+    .dependencies = .{ .asciitecture = .{
+        .url = "https://github.com/smallbraintime/asciitecture/archive/refs/tags/asciitecture-0.2.0.zip",
+        .hash = "1220c8c5e6fe324a5443b910ec1a0e3cc4cda7858867729af3f5de12ce95db1884be",
+    } },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
