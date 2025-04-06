@@ -29,13 +29,13 @@ const PipeSegment = struct {
         const bottom = at.math.Rectangle.init(
             at.math.vec2(xpos, screen_bottom - yoffset),
             @floatFromInt(5),
-            @floatFromInt(20),
+            @floatFromInt(200),
         );
 
         const top = at.math.Rectangle.init(
-            bottom.pos.sub(&at.math.vec2(0, 15 + 20)),
+            bottom.pos.sub(&at.math.vec2(0, 15 + 200)),
             @floatFromInt(5),
-            @floatFromInt(20),
+            @floatFromInt(200),
         );
 
         return .{
@@ -92,6 +92,8 @@ pub const GameState = struct {
         input: *at.input.Input,
         delta_time: f32,
     ) !void {
+        if (self.lost) return;
+
         if (input.contains(.space) and !self.jumping) self.jumping = true;
 
         if (self.jumping) {
