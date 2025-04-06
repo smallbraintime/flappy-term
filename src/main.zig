@@ -1,10 +1,14 @@
 const std = @import("std");
 const at = @import("asciitecture");
 
-const WIDTH = 105;
-const HEIGHT = 35;
-const SCREEN_BOTTOM = HEIGHT / 2;
-const SCREEN_RIGHT = WIDTH / 2;
+const SCREEN_WIDTH = 105.0;
+const SCREEN_HEIGHT = 35.0;
+const PIPE_WIDTH = 5.0;
+const PIPE_HEIGHT = 200.0;
+const PIPE_SPACE = 15.0;
+const PIPE_OFFSET = 20;
+const SCREEN_BOTTOM = SCREEN_HEIGHT / 2.0;
+const SCREEN_RIGHT = SCREEN_WIDTH / 2.0;
 const VELOCITYX = 5.0;
 const VELOCITYY = 15.0;
 const BIRD =
@@ -18,24 +22,27 @@ const PipeSegment = struct {
     top: at.math.Rectangle,
     visited: bool = false,
 
-    pub fn init(xpos: f32, screen_bottom: f32) PipeSegment {
+    pub fn init(xpos: f32) PipeSegment {
         var rn: [1]u8 = undefined;
         std.posix.getrandom(&rn) catch unreachable;
         var rng = std.rand.DefaultPrng.init(@intCast(rn[0]));
 
-        const divider: f32 = @floatFromInt(rng.random().intRangeAtMost(u8, 2, 10));
-        const yoffset = 35 / divider;
+        const yoffset: f32 = @floatFromInt(rng.random().intRangeAtMost(
+            i32,
+            @intFromFloat(SCREEN_BOTTOM - SCREEN_HEIGHT + PIPE_SPACE + 1),
+            @intFromFloat(SCREEN_BOTTOM - 1),
+        ));
 
         const bottom = at.math.Rectangle.init(
-            at.math.vec2(xpos, screen_bottom - yoffset),
-            @floatFromInt(5),
-            @floatFromInt(200),
+            at.math.vec2(xpos, yoffset),
+            PIPE_WIDTH,
+            PIPE_HEIGHT,
         );
 
         const top = at.math.Rectangle.init(
-            bottom.pos.sub(&at.math.vec2(0, 15 + 200)),
-            @floatFromInt(5),
-            @floatFromInt(200),
+            bottom.pos.sub(&at.math.vec2(0, PIPE_SPACE + PIPE_HEIGHT)),
+            PIPE_WIDTH,
+            PIPE_HEIGHT,
         );
 
         return .{
@@ -66,13 +73,12 @@ pub const GameState = struct {
 
         var pipe_segments = try std.ArrayListUnmanaged(PipeSegment).initCapacity(
             allocator,
-            20,
+            PIPE_OFFSET,
         );
         errdefer pipe_segments.deinit(allocator);
-        for (0..20) |i| {
+        for (0..PIPE_OFFSET) |i| {
             pipe_segments.appendAssumeCapacity(PipeSegment.init(
-                SCREEN_RIGHT + @as(f32, @floatFromInt(i)) * 20,
-                SCREEN_BOTTOM,
+                SCREEN_RIGHT + @as(f32, @floatFromInt(i * PIPE_OFFSET)),
             ));
         }
 
@@ -124,20 +130,20 @@ pub const GameState = struct {
                 self.lost = true;
             }
 
-            if (item.top.pos.x() < 0 and !item.visited) {
+            if (item.top.pos.x() + PIPE_WIDTH < 0 and !item.visited) {
                 item.visited = true;
                 self.result += 1;
             }
         }
 
-        if (self.pipe_segments.items[0].top.pos.x() < -SCREEN_RIGHT) {
+        if (self.pipe_segments.items[0].top.pos.x() + PIPE_WIDTH < -SCREEN_RIGHT) {
             _ = self.pipe_segments.orderedRemove(0);
         }
 
         if (self.pipe_segments.getLast().top.pos.x() < SCREEN_RIGHT) {
             try self.pipe_segments.append(allocator, PipeSegment.init(
-                self.pipe_segments.getLast().top.pos.x() + 20,
-                SCREEN_BOTTOM,
+                self.pipe_segments.getLast().top.pos.x() +
+                    @as(f32, @floatFromInt(PIPE_OFFSET)),
             ));
         }
     }
@@ -150,7 +156,7 @@ pub fn main() !void {
     var term = try at.Terminal(at.LinuxTty).init(
         gpa.allocator(),
         60,
-        .{ .width = 105, .height = 35 },
+        .{ .width = SCREEN_WIDTH, .height = SCREEN_HEIGHT },
     );
     defer term.deinit() catch unreachable;
     term.setBg(at.style.IndexedColor.bright_blue);
